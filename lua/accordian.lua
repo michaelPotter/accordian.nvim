@@ -5,7 +5,7 @@
 
 local M = {}
 
--- TODO this makes things weird in special windows like command window or telescope
+-- TODO this makes things weird in the command window (e.g. going `q:`)
 
 local augroup = "accordian"
 
