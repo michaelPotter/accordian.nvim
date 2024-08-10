@@ -3,8 +3,10 @@
 --
 -- A command :Accordian is provided to toggle this var for the current tab.
 --
--- Another command :AccordianwWin sets only the current window to collapse when
--- unfocused, and re-inflate when re-focused.
+-- Another pair of commands :AccordianwWinH and :AccordianWinV set only the
+-- current window to collapse when unfocused, and re-inflate when re-focused.
+-- This is great for collapsing sidebars or terminals that you only need to see
+-- occasionally.
 
 local M = {}
 
@@ -24,9 +26,10 @@ local function on_win_enter()
 				vim.fn.winrestview(vim.w.accordian_view)
 			end
 		end
-	elseif vim.w.accordian then
-		vim.api.nvim_win_set_height(0, vim.w.accordian[1])
-		-- vim.api.nvim_win_set_width(0, vim.w.accordian[2])
+	elseif vim.w.accordian_h then
+		vim.api.nvim_win_set_height(0, vim.w.accordian_h[1])
+	elseif vim.w.accordian_v then
+		vim.api.nvim_win_set_width(0, vim.w.accordian_v[1])
 	end
 end
 
@@ -35,21 +38,27 @@ local function on_win_leave()
 	if vim.t.accordian then
 		local view = vim.fn.winsaveview()
 		vim.api.nvim_win_set_var(0, "accordian_view", view)
-	elseif vim.w.accordian then
-		-- TODO support for vertical windows
-		if vim.w.accordian[2] == vim.go.columns then
-			vim.api.nvim_win_set_height(0, 1)
-		end
+	elseif vim.w.accordian_h then
+		vim.api.nvim_win_set_height(0, 1)
+	elseif vim.w.accordian_v then
+		vim.api.nvim_win_set_width(0, 1)
 	end
 end
 
 local function on_win_resize()
-	-- When the window resizes, save the new size
-	if vim.w.accordian then
-		vim.w.accordian = {
-			vim.api.nvim_win_get_height(0),
-			vim.api.nvim_win_get_width(0),
-		}
+	for i, v in ipairs(vim.v.event.windows) do
+		if v == vim.api.nvim_get_current_win() then
+			-- Only save the window size change if we're the active window.
+			if vim.w.accordian_h then
+				vim.w.accordian_h = {
+					vim.api.nvim_win_get_height(0),
+				}
+			elseif vim.w.accordian_v then
+				vim.w.accordian_v = {
+					vim.api.nvim_win_get_width(0),
+				}
+			end
+		end
 	end
 end
 
@@ -62,13 +71,23 @@ function M.toggle_accordian()
 	on_win_enter()
 end
 
-function M.toggle_accordian_win()
-	if vim.w.accordian then
-		vim.w.accordian = nil
+function M.toggle_accordian_win_h()
+	if vim.w.accordian_h then
+		vim.w.accordian_h = nil
 	else
 		-- get the current window size
-		vim.w.accordian = {
+		vim.w.accordian_h = {
 			vim.api.nvim_win_get_height(0),
+		}
+	end
+end
+
+function M.toggle_accordian_win_v()
+	if vim.w.accordian_v then
+		vim.w.accordian_v = nil
+	else
+		-- get the current window size
+		vim.w.accordian_v = {
 			vim.api.nvim_win_get_width(0),
 		}
 	end
@@ -105,8 +124,14 @@ M.setup = function()
 	)
 
 	vim.api.nvim_create_user_command(
-		"AccordianWin",
-		function() require("accordian").toggle_accordian_win() end,
+		"AccordianWinH",
+		function() require("accordian").toggle_accordian_win_h() end,
+		{ }
+	)
+
+	vim.api.nvim_create_user_command(
+		"AccordianWinV",
+		function() require("accordian").toggle_accordian_win_v() end,
 		{ }
 	)
 
